@@ -1,5 +1,5 @@
 *.db
-*/ignore
+ignore
 *cache
 __pycache__
 a3/Hubway/*
