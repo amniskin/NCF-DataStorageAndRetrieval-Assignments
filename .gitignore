@@ -2,8 +2,8 @@
 ignore
 *cache
 __pycache__
-Hubway/*
-Fanfiction/*
+a3/Hubway/*
+a3/Fanfiction
 db_a4_cache
 db_a4_cache/
 LayoutBFiles/*
