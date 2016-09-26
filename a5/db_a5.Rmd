@@ -15,6 +15,14 @@ setwd("~/Documents/courses/newCollege/current/databases/assignments/a4/")
 
 1.  Seven Databases, Section 2.4, Day 3, Do problems 1 and 2. For problem 2, get two or more user comments from each student in the class.
 
+    1.  Create a stored procedure where you can input a movie title or actor’s name you like, and it will return the top five suggestions based on either movies the actor has starred in or films with similar genres.
+```sql
+CREATE OF REPLACE FUNCTION search_by_name_or_title( searchStr text )
+  RETURNS TEXT AS $$
+```
+
+    2.  Expand the movies database to track user comments and extract keywords (minus English stopwords). Cross-reference these keywords with actors’ last names, and try to find the most talked about actors.
+
 2.  Discuss whether hubway.trips is normalized.
 
 3.  Finish my solution to problem 2d in Assignment 2 (which I wrote in the assignment doc). 
