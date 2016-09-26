@@ -1,0 +1,11 @@
+*.db
+ignore
+*cache
+__pycache__
+Hubway/*
+Fanfiction/*
+db_a4_cache
+db_a4_cache/
+LayoutBFiles/*
+*.clean
+*.tmp
