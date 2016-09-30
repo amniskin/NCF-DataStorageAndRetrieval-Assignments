@@ -168,3 +168,21 @@ SELECT a.year AS year, (CAST(a.homeless_ct AS REAL) / b.h_total) AS homeless_rat
 ```
     
 1.  **Use python with psycopg2 and the matplotlib library to create a histogram of movies by number of words in the title.**
+```python
+import psycopg2
+import matplotlib
+#### Since we won't be using X11 (because it's over SSH), we use this.
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+conn = psycopg2.connect("dbname=movies_aaron user = aniskin")
+cur = conn.cursor()
+cur.execute("SELECT title FROM movies")
+movies = cur.fetchall()
+cur.close()
+conn.close()
+movieLengths = [len(title[0].split(" ")) for title in movies]
+maxLength = max(movieLengths)
+plt.hist(movieLengths, bins=maxLengths)
+plt.savefig('foo')
+```
+![](foo.png)
