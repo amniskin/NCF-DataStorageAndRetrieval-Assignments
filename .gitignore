@@ -1,4 +1,5 @@
 *.db
+.Rhistory
 ignore
 *cache
 __pycache__
