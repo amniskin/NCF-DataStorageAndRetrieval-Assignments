@@ -123,8 +123,63 @@ For the first three problems, discuss how well the data supports answering the q
     
     So after messing with this a bit, I realized that I would essentially have to redo everything anyway (or store the intermediaries in an array along with a few other hacks) any time a movie were inserted. There's probably a better way to do this, but I haven't thought of it yet.
     Here's my python script for now though:
-    ```{bash}
-    cat baconi.py >> db_a6.Rmd
+    
+    ```python
+    import csv
+    import psycopg2
+    import datetime
+    
+    #conn = psycopg2.connect("dbname=movies_aaron user = aniskin")
+    conn = psycopg2.connect("dbname=movies user = amniskin")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM bacon_numbers;")
+    bacon_numbers = cur.fetchall()
+    if len(bacon_numbers) == 0:
+        # First to set Kevin Bacon's ID number. This could be done by checking every time, but since we know his ID won't change, we don't have to worry about that.
+        bacon = 2720
+        cur.execute("SELECT * FROM movies_actors;")
+        movies_actors = cur.fetchall()
+        cur.execute("DELETE FROM new_movies_for_bacon_numbers;")
+        cur.execute("SELECT * FROM actors;")
+        actors = cur.fetchall()
+        bacon_numbers = [(actor,None,None) for actor,i in actors]
+        ###  Here, I'm making an array of actors. Each actor will have three attributes:
+        ######  0. actor ID (which is also the actor's index + 1 in the actors array)
+        ######  1. current minimal distance
+        ######  2. The closest intermediate through which the shortest distance is.
+        bacon_numbers[bacon - 1] = (bacon_numbers[bacon-1][0], 0, bacon)
+        new_movies = [x for (x,y) in movies_actors if y == bacon]
+        vis_movies = set(new_movies)
+        vis_actors = [bacon]
+        new_edges = [(bacon, y) for (x,y) in movies_actors if x in new_movies and y != bacon]
+        count = 0
+        while len(new_edges) > 0:
+            count = count + 1
+            new_actors = []
+            for (old, new) in new_edges:
+                bacon_numbers[new - 1] = (bacon_numbers[new - 1][0], count, old)
+                vis_actors.append(new)
+                new_actors.append(new)
+            new_movies = [(mov, actor) for (mov,actor) in movies_actors if mov not in vis_movies and actor in new_actors]
+            new_edges = []
+            for (mov, old) in new_movies:
+                if mov not in vis_movies:
+                    tmp = [(old, new) for (m, new) in movies_actors if m == mov and new not in vis_actors]
+                    for old,new in tmp:
+                        vis_actors.append(new)
+                    new_edges.extend(tmp)
+                    vis_movies.add(mov)
+        with open('bacon_numbers.csv', 'w', newline='') as bn:
+            a = csv.writer(bn, delimiter=',')
+            data = [('actor_id', 'bacon_number', 'intermediary')]
+            data.extend(bacon_numbers)
+            a.writerows(data)
+        # Commit the changes to the database and close the cursor and connection to the DB
+        cur.executemany("INSERT INTO bacon_numbers VALUES(%s, %s, %s)", bacon_numbers)
+        conn.commit()
+    
+    cur.close()
+    conn.close()
     ```
     
 4.  a.  **Find the Postgres page size (aka block size) in one of the system tables. (The system tables are named pg_\*.)**
@@ -179,4 +234,8 @@ For the first three problems, discuss how well the data supports answering the q
             (2 rows)
             ```
             
+            So, for some reason it's only fetching about 74k pages when it's not indexed. This suggests to me that postgresql is doing something intelligent here with the storage. Each record should be about a page (some even more) due to the length of our fields. I think postgresql may have split up the table into separate columns with regard to pagination, which messes with our results.
+            
         ii. **if there’s a B-tree index (compare your answer to explain’s cost)?**
+            
+            This should be about log base (branching factor) of the number of records to find the page. Then it depends on how they store the titles. But since the titles cant' get too long, they can probably store quite a few rows on a page, making it much cheaper.
