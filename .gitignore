@@ -10,3 +10,4 @@ db_a4_cache/
 LayoutBFiles/*
 *.clean
 *.tmp
+a6/movies_data.sql
