@@ -70,5 +70,4 @@ setwd("~/Documents/courses/newCollege/current/databases/assignments/a10/")
     from pymongo import MongoClient
     mg = MongoClient()
     print(mg.database_names())
-    print("HEY")
     ```
