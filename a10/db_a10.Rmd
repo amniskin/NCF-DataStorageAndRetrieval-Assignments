@@ -1,0 +1,74 @@
+---
+title: "Data Storage and Retrieval -- Assignment 10"
+author: "Aaron Niskin"
+date: "November 07, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE}
+setwd("~/Documents/courses/newCollege/current/databases/assignments/a10/")
+```
+
+
+
+1.  **Print a JSON document containing `{"hello": "world"}`**
+    
+    ```javascript
+    printjson({"hello": "world"})
+    ```
+    
+2.  **Select a town via a case-insensitive regular expression containing the word *new*.**
+    
+    ```javascript
+    db.cities.find({name: /new/i}).limit(1)
+    ```
+    
+3.  **Find all cities whose names contain *e* and are famous for food or beer.**
+    
+    ```javascript
+    db.towns.find({name: /e/i, famous_for: {$in: ["food", "beer"]}})
+    ```
+
+4.  **Create a new database named *blogger* with a collection named *articles*. Insert a new article with an author name and email, creation date, and text.**
+    
+    ```javascript
+    use blogger;
+    db.articles.insert(
+    {author:
+      {name: "Steve I-cant-spell Buschemi",
+       email: "StevieWonderful@hotlink.com"},
+       creation_date: "yesterday (that won't ever be confusing)",
+       text: "Has he ever been in a bad movie? How has he not gotten an Oscar yet? Wait... Has he gotten an Oscar? I guess this is why I need internet at my apartment. But nope. Won't deal with Comcast. And I think that's a long enough comment. I need sleep."})
+    ```
+
+5.  **Update the article with an array of comments, containing a comment with an author and text.**
+    
+    ```javascript
+    db.articles.update(
+      {"author.name": /Steve/i},
+      {$set: {comments: 
+              [{author: "John Clease", text: "We are the nights who say, NI!"},
+               {author: "Jack Doneghy", text: "It's spelled with a 'k', buddy."}
+              ]}})
+    ```
+    
+6.  **Run a query from external JavaScript and Python files.**
+    
+    This isn't really something I can put here, but I'll try.
+    
+    ```bash
+    mongo cities < tmp.js
+    ```
+    
+    Where `tmp.js` is normal JavaScript code one might execute from within Mongo. In my case, it's just `db.cities.find().limit(1)` (both the collection and the database are called `cities`, unfortunately). As for Python, we will simply execute the code directly.
+    
+    ```{python}
+    from pymongo import MongoClient
+    mg = MongoClient()
+    print(mg.database_names())
+    print("HEY")
+    ```
