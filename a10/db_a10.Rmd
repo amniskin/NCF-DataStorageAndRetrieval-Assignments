@@ -52,7 +52,7 @@ setwd("~/Documents/courses/newCollege/current/databases/assignments/a10/")
       {"author.name": /Steve/i},
       {$set: {comments: 
               [{author: "John Clease", text: "We are the nights who say, NI!"},
-               {author: "Jack Doneghy", text: "It's spelled with a 'k', buddy."}
+               {author: "Jack Doneghy", text: "It's spelled with a 'k'!"}
               ]}})
     ```
     
