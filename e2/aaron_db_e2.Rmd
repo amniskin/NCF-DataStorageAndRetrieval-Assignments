@@ -1,0 +1,191 @@
+---
+title: "EDA - Exam 2"
+author: "Aaron Niskin"
+date: "December 06, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, tidy=TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+setwd("~/Documents/courses/newCollege/current/eda/assignments/e2/")
+library(tidyverse)
+```
+
+This is a 90 minute exam. You are to write an R Markdown document that provides scripts for carrying out the following tasks. It is the work, not the answers, which will be evaluated.
+
+You may use the electronic resources at your disposal, but please do your own work.
+
+Do as much as you can. Mail your pdf to mcdonald@ncf.edu at the end of the 90 minute period.
+
+Navigate to the following page:
+
+```{r, echo=FALSE}
+data_url <- 'https://www.kaggle.com/lislejoem/us_energy_census_gdp_10-14'
+```
+
+`r data_url`
+
+Read the annotation. Download the dataset and read it into memory (this may require you to register at kaggle - it’s easy). Alternatively, grab the data from the canvas page under “files,” then “Data.”
+Initial exploration
+
+```{r, echo=FALSE}
+library(xtable)
+printNamedDf <- function(df, title="") {
+  tmp <- xtable(df, caption=title)
+  return(print.xtable(tmp, comment=FALSE))
+}
+printDf <- function(df, title="") {
+  tmp <- xtable(df, caption=title)
+  return(print.xtable(tmp, comment=FALSE, include.rownames = FALSE))
+}
+complete_cases <- function(df) {
+  tmp <- as.data.frame(names(df))
+  tmp <- cbind(tmp, as.data.frame(sapply(df, function(col) {
+    sum(complete.cases(col))
+  })))
+  tmp <- cbind(tmp, as.data.frame(sapply(df, function(col){
+    100 * sum(complete.cases(col)) / length(col)
+  })))
+  names(tmp) <- c("FieldName", "CompleteCases", "PercentComplete")
+  return(tmp)
+}
+getNumericCols <- function(datFrame){
+  datFrame[,sapply(names(datFrame), function(name){
+    return(is.numeric(datFrame[,name][[1]]))
+  })]
+}
+data <- read.csv("Energy Census and Economic Data US 2010-2014.csv")
+```
+
+1.  **Vet the data for completeness. Briefly discuss your conclusions.**
+    
+    Our data has `r dim(data[1])` rows, and `r sum(complete.cases(data))` complete rows.
+    
+    ```{r}
+    tmp <- complete_cases(data)
+    tmp <- tmp[tmp$PercentComplete < 100,]
+    ```
+    
+    ```{r, results='asis'}
+    printDf(tmp, title='Fields with less than 100 percent complete cases')
+    ```
+    
+    So for a data set with 52 rows, it's doing pretty well on completeness. Furthermore, that one "incomplete case" is for the entire US and those fields don't apply. So it's not really an 'incomplete' case.
+
+2.  **Filter out any observations which do not correpsond to US states.**
+    
+    This works because every state has complete cases.
+    
+    ```{r}
+    data_states <- data[complete.cases(data),]
+    ```
+    
+3.  **Subset the energy variables to produce a data frame which contains information concerning coal and electricity data (as well as all variables not contained in the energy variables).**
+    
+    ```{r}
+    data_states_coal_elect <- data_states[,c(1:5, 47:81, 122:length(names(data_states)))]
+    ```
+    
+4.  **Using ggplot2, create histograms and boxplots for total coal consumption and total coal production for the year 2010. Identify any production outliers above median.**
+    
+    ```{r, message=FALSE, warning=FALSE}
+    plt <- ggplot(data=data_states_coal_elect)
+    plt + geom_histogram(aes(x=CoalC2010)) + labs(x="Coal Consumption in 2010 with Red Median Line") + geom_vline(aes(xintercept= median(CoalC2010), color='red'))
+    plt + geom_histogram(aes(x=CoalP2010)) + labs(x="Coal Production in 2010 with Red Median Line") + geom_vline(aes(xintercept= median(CoalP2010), color='red'))
+    tmp <- data_states_coal_elect %>% gather("Field", "Value", c(6,11))
+    ggplot(data=tmp) + geom_boxplot(aes(x=Field, y=Value))
+    rm(tmp)
+    boxplot(data_states_coal_elect$CoalC2010)
+    boxplot(data_states_coal_elect$CoalP2010)
+    prod_med = median(data_states_coal_elect$CoalP2010)
+    data_states_coal_elect[data_states_coal_elect$CoalP2010 > prod_med, "StateCodes"]
+    ```
+    
+    This is because the median is zero. So any coal producing state would be an outlier accourding to this definition.
+
+5.  **Using ggplot2, create a scatterplots for total coal consumption/production and total electricity con- sumption/production for the year 2010. Discuss correlation.**
+    
+    ```{r}
+    ggplot(data=data_states_coal_elect) + geom_point(aes(x=CoalP2010, y= CoalC2010)) + labs(title= "Coal Consumption VS Production for 2010")
+    ggplot(data=data_states_coal_elect) + geom_point(aes(x=ElecE2010, y= ElecC2010)) + labs(title= "Electricity Consumption VS Expenditure for 2010")
+    ```
+    
+    The electricity consumption is highly correlated with expenditure, but coal consumption is not very highly correlated with production.
+    
+    ```{r}
+    ggplot(data=data_states_coal_elect[data_states_coal_elect$CoalP2010 > 0,]) + geom_point(aes(x=CoalP2010, y= CoalC2010)) + labs(title= "Coal Consumption VS Production for Coal Producing States in 2010")
+    ```
+    
+    And still, nothing really too convincing there.
+
+#Aggregation
+6.  **Aggregate total coal consumption and total coal production by region. Report the corresponding IQRs.**
+    
+    ```{r}
+    tmp <- getNumericCols(data_states_coal_elect) %>% group_by(by=Region) %>% summarise_all(funs(sum))
+    tmp_quants <- quantile(tmp$CoalC2010)
+    tmp_quants[4] - tmp_quants[2]
+    ```
+    
+    The above was just for CoalC2010, but you can `lapply` for the rest.
+    
+7.  **Aggregate total coal consumption and total coal production by division. Report the corresponding medians.**
+    
+    ```{r}
+    tmp <- getNumericCols(data_states_coal_elect) %>% group_by(by=Division) %>% summarise_all(funs(sum))
+    tmp <- tmp %>% summarise_all(funs(median))
+    ```
+    ```{r, results='asis'}
+    printDf(tmp[,6:dim(tmp)[2]])
+    ```
+
+#Mutation and filtering
+8.  **For the year 2010, normalize total coal consumption and total coal production by population and add this as another variable. Report the range of the new variable**
+    
+    ```{r}
+    data_states_coal_elect$CoalC2010_pop_norm <- data_states_coal_elect$CoalC2010 / data_states_coal_elect$POPESTIMATE2010
+    max(data_states_coal_elect$CoalC2010_pop_norm) - min(data_states_coal_elect$CoalC2010_pop_norm)
+    ```
+    
+    ```{r, eval=FALSE, echo=FALSE}
+    max_coal <- max(data_states_coal_elect$CoalC2010)
+    min_coal <- min(data_states_coal_elect$CoalC2010)
+    data_states_coal_elect$CoalC2010Normalized = (data_states_coal_elect$CoalC2010 - min_coal) / (max_coal - min_coal)
+    ```
+    
+9.  **Filter the new variable to retain the observations corresponding to the top ten values. Report the state abbreviations of the 2010 populations of the corresponding states.**
+    
+    ```{r}
+    data_states_coal_elect <- data_states_coal_elect %>% arrange(desc(CoalC2010_pop_norm))
+    data_states_coal_elect[1:10,"StateCodes"]
+    ```
+
+#Plotting multiple variables
+10. **Using ggplot2, facet on year and generate boxplots for total coal consumption (you might consider reshaping the data).**
+    
+    ```{r}
+    tmp <- data_states_coal_elect %>% gather("Year", "Consumption", c(6:10))
+    tmp$Year <- gsub("CoalC", "", tmp$Year)
+    ggplot(data=tmp) + geom_boxplot(aes(x=Year, y=Consumption)) + labs(title="Coal Consumption By Year")
+    ```
+    
+11. **Generate a scatterplot of coal production and population for the year 2010 and color by region. Generate a second plot colored by division.**
+    
+    ```{r}
+    tmp2 <- data_states %>% gather("Year", "Population", c(163:167))
+    tmp2$Year <- gsub("POPESTIMATE", "", tmp2$Year)
+    tmp <- inner_join(tmp, tmp2, by=c("Year", "Region", "StateCodes", "Division"))
+    tmp2 <- data_states_coal_elect %>% gather("Year", "Production", c(11:15))
+    tmp2$Year <- gsub("CoalP", "", tmp2$Year)
+    tmp <- inner_join(tmp, tmp2, by=c("Year", "Region", "StateCodes", "Division"))
+    ggplot(data=tmp) + geom_point(aes(y=Production, x=Population)) + labs(title="Coal Production by Population")
+    ggplot(data=tmp) + geom_point(aes(y=Production, x=Population, color=Division)) + labs(title="Coal Production by Population")
+    ```
+
+12. **Generate a scatterplot of coal production and population, colored by region, faceted on year.**
+    ```{r}
+    ggplot(data=tmp) + geom_point(aes(y=Production, x=Population, color=Division)) + labs(title="Coal Production VS Population By Year") + facet_grid(Year ~.)
+    ```
